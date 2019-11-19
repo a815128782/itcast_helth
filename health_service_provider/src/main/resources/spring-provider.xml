@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:dubbo="http://code.alibabatech.com/schema/dubbo" xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+		http://www.springframework.org/schema/beans/spring-beans.xsd
+         http://code.alibabatech.com/schema/dubbo
+         http://code.alibabatech.com/schema/dubbo/dubbo.xsd
+         http://www.springframework.org/schema/context
+         http://www.springframework.org/schema/context/spring-context.xsd http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+    <!--1.组件扫描-->
+    <context:component-scan base-package="com.itheima"/>
+    <!--2.引入外部资源配置文件-->
+    <context:property-placeholder location="classpath:db.properties"/>
+    <!--3.配置数据源-->
+    <bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource">
+        <property name="driverClassName" value="${jdbc.driver}"/>
+        <property name="url" value="${jdbc.url}"/>
+        <property name="username" value="${jdbc.username}"/>
+        <property name="password" value="${jdbc.pwd}"/>
+    </bean>
+
+    <!--配置日志-->
+    <bean id="configuration" class="org.apache.ibatis.session.Configuration">
+        <property name="logImpl" value="org.apache.ibatis.logging.stdout.StdOutImpl"/>
+    </bean>
+    <!--4.配置数据库操作：JdbcTemplate-->
+    <!--mybatis框架交由spring管理-->
+    <!--获取SqlSessionFactoryBean对象-->
+    <bean id="sessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <!--注入数据源-->
+        <property name="dataSource" ref="dataSource"/>
+        <!--配置日志-->
+        <property name="configuration" ref="configuration"/>
+        <!--配置别名-->
+        <property name="typeAliasesPackage" value="com.itheima.pojo,com.itheima.entity"/>
+
+        <!--配置PageHelper分页插件-->
+        <!-- 注意其他配置 -->
+        <property name="plugins">
+            <array>
+                <bean class="com.github.pagehelper.PageHelper">
+                    <property name="properties">
+                        <props>
+                            <!--选择数据库方言-->
+                            <prop key="dialect">mysql</prop>
+                            <!--
+                                reasonable：默认值是false
+                                true:自动处理首页和尾页，如果是第一页，再点上一页还是第一页不需要在前端去做是否为首页的判断
+                                    如果是尾页，再点下一页还是最后一页，也不需要在前端做是否为尾页的判断
+                            -->
+                            <prop key="reasonable">true</prop>
+                        </props>
+                    </property>
+                </bean>
+            </array>
+        </property>
+    </bean>
+
+
+    <!--Mapper扫描器获取Mapper代理对象-->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <!--基本接口扫描的包-->
+        <property name="basePackage" value="com.itheima.mapper"/>
+    </bean>
+
+    <!-- 事务管理器  -->
+    <bean id="transactionManager"
+          class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSource"/>
+    </bean>
+
+    <tx:annotation-driven transaction-manager="transactionManager"
+                          proxy-target-class="true"/>
+
+    <!--dubbo相关配置-->
+    <!--1.给应用起一个名称，唯一-->
+    <dubbo:application name="health_service_provider"/>
+    <!--2.配置关联注册中心   本地注册中心-->
+    <dubbo:registry address="zookeeper://127.0.0.1:2181"/>
+    <!--3.配置协议和端口号,服务应用-->
+    <dubbo:protocol name="dubbo" port="20887"/>
+    <!--4.注解扫描@Service实现发布服务-->
+    <dubbo:annotation package="com.itheima.service"/>
+
+
+
+</beans>

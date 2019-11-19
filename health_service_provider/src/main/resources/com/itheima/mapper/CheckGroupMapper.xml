@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<mapper namespace="com.itheima.mapper.CheckGroupMapper">
+    <insert id="add" parameterType="com.itheima.pojo.CheckGroup">
+        <!--获取自增产生的ID-->
+        <selectKey resultType="integer" order="AFTER" keyProperty="id">
+            select LAST_INSERT_ID()
+        </selectKey>
+        insert into t_checkgroup values(id,#{code},#{name},#{helpCode},#{sex},#{remark},#{attention})
+    </insert>
+
+    <!--设置检查组和检查项多对多关系-->
+    <insert id="setCheckGroupAndCheckItem" parameterType="map">
+        insert into t_checkgroup_checkitem values(#{checkGroupId},#{checkitemId})
+    </insert>
+    <update id="update" parameterType="com.itheima.pojo.CheckGroup">
+        update t_checkgroup
+        <set>
+            <if test="name != null">
+                name = #{name},
+            </if>
+            <if test="sex != null">
+                sex = #{sex},
+            </if>
+            <if test="code != null">
+                code = #{code},
+            </if>
+            <if test="helpCode != null">
+                helpCode = #{helpCode},
+            </if>
+            <if test="attention != null">
+                attention = #{attention},
+            </if>
+            <if test="remark != null">
+                remark = #{remark},
+            </if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <!--根据ID删除检查组关联的信息-->
+    <delete id="deleteAssoication">
+        delete from t_checkgroup_checkitem where checkgroup_id = #{id}
+    </delete>
+    <delete id="deleteById">
+        delete from t_checkgroup where id = #{id}
+    </delete>
+
+    <select id="findByCondition" parameterType="string" resultType="com.itheima.pojo.CheckGroup">
+        select * from t_checkgroup
+        <if test="value != null and value.length > 0">
+            where code like "%${value}%" or name like "%${value}%" or helpCode like  "%${value}%"
+        </if>
+    </select>
+
+    <resultMap id="bid" type="com.itheima.pojo.CheckGroup">
+        <id column="id" property="id"/>
+        <collection property="checkItems" ofType="list" column="id" select="com.itheima.mapper.CheckItemMapper.findByCgId"/>
+    </resultMap>
+
+    <select id="findById" parameterType="string" resultMap="bid">
+        select * from t_checkgroup where id = #{id}
+    </select>
+
+    <resultMap id="baseResult" type="com.itheima.pojo.CheckGroup">
+        <id column="id" property="id"/>
+    </resultMap>
+
+    <resultMap id="findByIdResult" type="com.itheima.pojo.CheckGroup" extends="baseResult">
+        <collection property="checkItems" ofType="list" column="id" select="com.itheima.mapper.CheckItemMapper.findCheckItemById"/>
+    </resultMap>
+
+    <select id="findBySid" resultMap="findByIdResult">
+        select * from t_checkgroup where id in(select checkgroup_id from t_setmeal_checkgroup where setmeal_id = #{id});
+    </select>
+
+    <select id="findAll" resultType="com.itheima.pojo.CheckGroup">
+        select * from t_checkgroup
+    </select>
+
+</mapper>
